@@ -12,7 +12,7 @@ function parseLine(line, debtMapping) {
     let lineData = line.split(',').map((item) => item.trim());
 
     if (lineData.length > 3 || lineData.length < 3) {
-        console.log('\nA line is expected to have only 3 information');
+        console.log('\nA line should have exactly 3 information');
         console.log(`Invalid line : ${line}`)
         console.log('Skipping it\n');
         return;

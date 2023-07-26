@@ -4,7 +4,7 @@
   "description": "A CLI application to generate a summary of the monetary debt data.",
   "main": "./src/index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --collectCoverage --silent",
     "lint": "eslint ."
   },
   "bin": {
@@ -15,7 +15,8 @@
   "dependencies": {
     "boxen": "^5.1.2",
     "chalk": "^4.1.2",
-    "csv-parser": "^3.0.0"
+    "csv-parser": "^3.0.0",
+    "yargs": "^17.6.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.3",

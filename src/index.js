@@ -6,9 +6,6 @@ const readLine = require('readline');
 const checkCommandLine = require('./cli');
 const parseLine = require('./util')
 
-
-const debtMapping = new Map();
-
 /**
  * Constructs the summary line from the provided input in the form [key, Value]
  * Sample :
@@ -32,7 +29,6 @@ function summaryTransformStream() {
     return new Transform({
         objectMode: true,
         transform(chunk, encoding, callback) {
-            console.log('sum')
             const debtSummary = summaryLine(chunk);
             this.push(debtSummary);
             callback();
@@ -48,7 +44,7 @@ function summaryTransformStream() {
  * @param {*} debtMapping 
  * @param {*} outputFile 
  */
-function writeDebtSummary(debtMapping, outputFile) {
+async function writeDebtSummary(debtMapping, outputFile) {
 
     let writeStream = fs.createWriteStream(outputFile);
 
@@ -62,33 +58,20 @@ function writeDebtSummary(debtMapping, outputFile) {
 
     // Optionally, handle any errors that may occur during the piping process
     readStream.on('error', (err) => {
-        console.error('Error occurred while reading from the stream:', err);
+        console.error('Error while reading from the stream:', err);
     });
 
     summaryTransform.on('error', (err) => {
-        console.error('Error occurred in the Transform stream:', err);
+        console.error('Error in the Transform stream:', err);
     });
 
     writeStream.on('error', (err) => {
-        console.error('Error occurred while writing to the stream:', err);
+        console.error('Error while writing to the stream:', err);
     });
 
     writeStream.on('finish', () => {
         console.log('Write process is complete.');
     });
-}
-
-function writeDebtSummary2(debtMapping, outputFile) {
-
-    let writeStream = fs.createWriteStream(outputFile);
-
-    for (const [key, value] of debtMapping) {
-
-        // Construct the summary in format -> Debitor,Creditor,Amount
-        const debtSummary = key.split('_').join(',') + ',' + parseFloat(value).toFixed(2) + '\n';
-
-        writeStream.write(debtSummary);
-    }
 }
 
 /**
@@ -98,19 +81,19 @@ function writeDebtSummary2(debtMapping, outputFile) {
  */
 function readInputCSVFile(inputFile) {
 
-    let readStream;
     return new Promise((resolve, reject) => {
-        readStream = fs.createReadStream(inputFile);
+        const debtMapping = new Map();
+
+        let readStream = fs.createReadStream(inputFile);
 
         const readInterface = readLine.createInterface({
             input: readStream,
         });
-
         readInterface.on('line', (line) => parseLine(line, debtMapping));
 
         readInterface.on('close', () => {
             if (readStream) readStream.close();
-            resolve('Completed reading the CSV file.')
+            resolve(debtMapping);
         });
 
         readInterface.on('error', (err) => {
@@ -129,16 +112,16 @@ function readInputCSVFile(inputFile) {
 async function processMonetaryDebt(inputFile, outputFile) {
 
     try {
-        await readInputCSVFile(inputFile);
-
-        writeDebtSummary2(debtMapping, outputFile);
+        const debtMapping = await readInputCSVFile(inputFile);
+        // console.log('output', output);
+        await writeDebtSummary(debtMapping, outputFile);
     } catch (error) {
         console.log('Error occurred: ', error);
     }
 }
 
 
-(() => {
+(async () => {
     try {
         const result = checkCommandLine();
 
@@ -146,11 +129,13 @@ async function processMonetaryDebt(inputFile, outputFile) {
         if (result === 1) return;
 
         if (typeof (result) === 'object' && Object.entries(result).length === 2) {
-            processMonetaryDebt(result['input'], result['output']);
+            await processMonetaryDebt(result['input'], result['output']);
         }
+
+        console.log("Completed..")
     }
     catch (err) {
-        console.log("Error occured: ", err);
+        console.log("Error : ", err);
     }
 })()
 

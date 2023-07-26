@@ -5,10 +5,6 @@ beforeEach(() => {
     debtMapping = new Map();
 })
 
-afterEach(() => {
-    debtMapping = null;
-})
-
 describe("Test the valid line inputs", () => {
 
     test("Valid line input should return correct key and value in debtMapping", () => {
@@ -51,7 +47,7 @@ describe("Test the invalid line inputs", () => {
     test('Input with more than 3 elements should be considered invalid', () => {
         const line = " Alex, Dan, 123.0, Brad";
         const key = "Alex_Dan";
-        const errorMessage = '\nA line is expected to have only 3 information';
+        const errorMessage = '\nA line should have exactly 3 information';
 
         parseLine(line, debtMapping);
 
