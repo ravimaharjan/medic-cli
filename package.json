@@ -4,7 +4,7 @@
   "description": "A CLI application to generate a summary of the monetary debt data.",
   "main": "./src/index.js",
   "scripts": {
-    "test": "jest --collectCoverage --silent",
+    "test": "jest --collectCoverage ",
     "lint": "eslint ."
   },
   "bin": {

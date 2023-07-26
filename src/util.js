@@ -46,4 +46,4 @@ function parseLine(line, debtMapping) {
     debtMapping.set(key, amount);
 }
 
-module.exports = parseLine;
+module.exports = { parseLine }

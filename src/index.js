@@ -4,7 +4,7 @@ const fs = require('fs');
 const { Readable, Transform } = require('stream')
 const readLine = require('readline');
 const checkCommandLine = require('./cli');
-const parseLine = require('./util')
+const util = require('./util')
 
 /**
  * Constructs the summary line from the provided input in the form [key, Value]
@@ -89,16 +89,16 @@ function readInputCSVFile(inputFile) {
         const readInterface = readLine.createInterface({
             input: readStream,
         });
-        readInterface.on('line', (line) => parseLine(line, debtMapping));
+        readInterface.on('line', (line) => util.parseLine(line, debtMapping));
 
         readInterface.on('close', () => {
-            if (readStream) readStream.close();
+            if (readStream) readStream.destroy();
             resolve(debtMapping);
         });
 
-        readInterface.on('error', (err) => {
-            if (readStream) readStream.close();
-            reject(err)
+        readInterface.on('error', () => {
+            if (readStream) readStream.destroy();
+            reject("error")
         });
     });
 }
@@ -142,6 +142,7 @@ async function processMonetaryDebt(inputFile, outputFile) {
 
 module.exports = {
     writeDebtSummary,
+    readInputCSVFile,
     summaryLine
 }
 

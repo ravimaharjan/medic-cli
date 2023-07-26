@@ -1,4 +1,4 @@
-const parseLine = require('../src/util');
+const { parseLine } = require('../src/util');
 let debtMapping;
 
 beforeEach(() => {
