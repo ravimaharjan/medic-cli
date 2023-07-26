@@ -52,11 +52,11 @@ Carl,Beatrice,25.30
   medic-cli --version
   ```
 * Run the command to see the usage.
-```
+  ```
   medic-cli --help
-```
+  ```
 ### How to use
-The tool has a minimal help information. Run `medic-cli --help` will display the usage information.
+The tool has a minimal help information. Run `medic-cli --help` to display the usage information.
 ```
 Usage: medic-cli -i <input file>  -o <output file>
 ┌─────────────────────────────────────────────────┐
