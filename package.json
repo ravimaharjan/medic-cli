@@ -1,0 +1,25 @@
+{
+  "name": "medic-cli",
+  "version": "1.0.0",
+  "description": "A CLI application to generate a summary of the monetary debt data.",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "bin": {
+    "medic-cli": "./src/index.js"
+  },
+  "author": "Ravi Maharjan",
+  "license": "ISC",
+  "dependencies": {
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "csv-parser": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.3",
+    "eslint": "^8.45.0",
+    "jest": "^29.6.1"
+  }
+}
