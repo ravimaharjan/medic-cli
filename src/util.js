@@ -11,6 +11,8 @@
 function parseLine(line, debtMapping) {
     let lineData = line.split(',').map((item) => item.trim());
 
+    // Using multiple console.log so that to make assert in unittest easier. Than can be
+    // changed to use single console.log with line breaks also.
     if (lineData.length > 3 || lineData.length < 3) {
         console.log('\nA line should have exactly 3 information');
         console.log(`Invalid line : ${line}`)

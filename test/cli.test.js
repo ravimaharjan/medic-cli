@@ -1,4 +1,4 @@
-const checkCommandLine = require("../src/cli");
+const cli = require("../src/cli");
 
 describe('Test checkCommandLine', () => {
 
@@ -14,7 +14,7 @@ describe('Test checkCommandLine', () => {
         }
 
         // Act
-        const result = checkCommandLine();
+        const result = cli.checkCommandLine();
 
         // Assert
         expect(result).toEqual(expectedResult);

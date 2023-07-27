@@ -3,7 +3,7 @@
 const fs = require('fs');
 const { Readable, Transform } = require('stream')
 const readLine = require('readline');
-const checkCommandLine = require('./cli');
+const cli = require('./cli');
 const util = require('./util')
 
 /**
@@ -56,19 +56,22 @@ async function writeDebtSummary(debtMapping, outputFile) {
     // to the writable stream
     readStream.pipe(summaryTransform).pipe(writeStream);
 
-    // Optionally, handle any errors that may occur during the piping process
+    // Handle any errors that may occur during the read process
     readStream.on('error', (err) => {
         console.error('Error while reading from the stream:', err);
     });
 
+    // Handle any errors that may occur during the transformation process
     summaryTransform.on('error', (err) => {
         console.error('Error in the Transform stream:', err);
     });
 
+    // Handle any errors that may occur during the write process
     writeStream.on('error', (err) => {
         console.error('Error while writing to the stream:', err);
     });
 
+    // Completion of the write process.
     writeStream.on('finish', () => {
         console.log('Write process is complete.');
     });
@@ -104,7 +107,7 @@ function readInputCSVFile(inputFile) {
 }
 
 /**
- * Beging the process of processing the monetary debt data. It produces the final
+ * Begin the process of processing the monetary debt data. It produces the final
  * debt information in the outputFile.
  * @param {string} inputFile 
  * @param {string} outputFile 
@@ -113,7 +116,6 @@ async function processMonetaryDebt(inputFile, outputFile) {
 
     try {
         const debtMapping = await readInputCSVFile(inputFile);
-        // console.log('output', output);
         await writeDebtSummary(debtMapping, outputFile);
     } catch (error) {
         console.log('Error occurred: ', error);
@@ -121,29 +123,36 @@ async function processMonetaryDebt(inputFile, outputFile) {
 }
 
 
-(async () => {
+async function begin() {
     try {
-        const result = checkCommandLine();
+        const result = cli.checkCommandLine();
+        // Checking if the result is an error. Here 1 means error case.
+        if (result === 1) return Promise.reject("Invalid command line arguments")
 
-        // Checking if the result is an error. 
-        if (result === 1) return;
-
+        // Checking if the result is of type object and it has 2 entries.
         if (typeof (result) === 'object' && Object.entries(result).length === 2) {
+
             await processMonetaryDebt(result['input'], result['output']);
         }
 
         console.log("Completed..")
+        return Promise.resolve("Completed")
     }
     catch (err) {
         console.log("Error : ", err);
     }
-})()
-
-
-module.exports = {
-    writeDebtSummary,
-    readInputCSVFile,
-    summaryLine
 }
 
+begin();
+
+const myModule = {
+    writeDebtSummary,
+    readInputCSVFile,
+    summaryLine,
+    summaryTransformStream,
+    processMonetaryDebt,
+    begin
+}
+
+module.exports = myModule;
 
