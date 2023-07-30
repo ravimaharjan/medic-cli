@@ -132,7 +132,7 @@ async function begin() {
         // Checking if the result is of type object and it has 2 entries.
         if (typeof (result) === 'object' && Object.entries(result).length === 2) {
 
-            await processMonetaryDebt(result['input'], result['output']);
+            await myModule.processMonetaryDebt(result['input'], result['output']);
         }
 
         console.log("Completed..")
