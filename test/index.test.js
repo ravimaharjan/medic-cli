@@ -2,6 +2,7 @@ const fs = require("fs");
 const { writeDebtSummary, summaryLine, readInputCSVFile, summaryTransformStream, begin } = require("../src/index");
 const { Readable, Writable, Transform } = require("stream");
 const cli = require("../src/cli")
+const myModule = require('../src/index');
 
 jest.mock('fs');
 
@@ -157,14 +158,14 @@ describe("Test the begin method", () => {
         }
     })
 
-    // Spend significant time to mock the processMonetaryDebt but it was not successful.
-    // Can take suggestions from others.
-    it.skip("Begin method should return files if the checkCommandLine valides successfully ", async () => {
-        const myModule = require('../src/index');
-        const mock = jest.fn();
 
+    it("Begin method should return files if the checkCommandLine valides successfully ", async () => {
+
+        // Setup
+        const mock = jest.fn();
         const files = { input: 'input.csv', output: 'output.csv' }
         mock.mockReturnValue(files)
+
         cli.checkCommandLine = mock;
         const logSpy = jest.spyOn(console, 'log');
 
@@ -173,7 +174,7 @@ describe("Test the begin method", () => {
         myModule.processMonetaryDebt = mock2
 
         // Act
-        const result = await myModule.begin();
+        const result = await begin();
 
         //Assert
         expect(logSpy).toHaveBeenCalledWith('Completed..')
