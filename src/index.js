@@ -1,80 +1,20 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
-const { Readable, Transform } = require('stream')
+const { Transform, pipeline } = require('stream')
 const readLine = require('readline');
 const cli = require('./cli');
-const util = require('./util')
+const util = require('./util');
 
-/**
- * Constructs the summary line from the provided input in the form [key, Value]
- * Sample :
- *      Key : "Alex_Beatrice"
- *      Value : 123
- *      Return value : Alex,Beatrice,123
- * 
- * @param {object} keyValue 
- * @returns 
- */
-function summaryLine(keyValue) {
-    const [key, value] = keyValue;
-    return key.split('_').join(',') + ',' + parseFloat(value).toFixed(2) + '\n';
-}
-
-/**
- * Return the Transform stream
- * @returns Tranform Stream
- */
-function summaryTransformStream() {
+function summaryTransform() {
     return new Transform({
-        objectMode: true,
-        transform(chunk, encoding, callback) {
-            const debtSummary = summaryLine(chunk);
-            this.push(debtSummary);
+        transform(test, encoding, callback) {
+            const chunk = JSON.parse(test);
+            const summary = util.getSummaryChunk(chunk);
+            this.push(summary);
             callback();
-        },
-    });
-}
-
-
-/**
- * Iterates over the debt Mappings and constructs the summary in the format
- *      Format : Debtor, Creditor, Amount.
- * Finally the summary is written to the output file.
- * @param {*} debtMapping 
- * @param {*} outputFile 
- */
-async function writeDebtSummary(debtMapping, outputFile) {
-
-    let writeStream = fs.createWriteStream(outputFile);
-
-    const readStream = Readable.from(debtMapping.entries())
-
-    const summaryTransform = summaryTransformStream();
-
-    // Pipe the data from the readable stream, through the Transform stream, 
-    // to the writable stream
-    readStream.pipe(summaryTransform).pipe(writeStream);
-
-    // Handle any errors that may occur during the read process
-    readStream.on('error', (err) => {
-        console.error('Error while reading from the stream:', err);
-    });
-
-    // Handle any errors that may occur during the transformation process
-    summaryTransform.on('error', (err) => {
-        console.error('Error in the Transform stream:', err);
-    });
-
-    // Handle any errors that may occur during the write process
-    writeStream.on('error', (err) => {
-        console.error('Error while writing to the stream:', err);
-    });
-
-    // Completion of the write process.
-    writeStream.on('finish', () => {
-        console.log('Write process is complete.');
-    });
+        }
+    })
 }
 
 /**
@@ -82,27 +22,79 @@ async function writeDebtSummary(debtMapping, outputFile) {
  * @param {string} inputFile : Path to the input file
  * @returns Promise
  */
-function readInputCSVFile(inputFile) {
+function process(inputFile, outputFile) {
 
     return new Promise((resolve, reject) => {
-        const debtMapping = new Map();
 
-        let readStream = fs.createReadStream(inputFile);
+        let chunk = [];
+        let chunkCount = 0;
+
+        // chunk size in bytes to send to transform stream at a time.
+        // Depending upon the input file and machine, we need to 
+        // choose the optimal value.
+        let maxChunkSize = 5000;
+
+        const highWaterMark = 64000; // Optional highWaterMark Value. Currently set to default value.
+
+        // This key is important to create a chunk. It is two avoid same key in two chunks. We ensure
+        // same keys are kept in only one chunk.
+        let prevKey = null;
+
+        let readStream = fs.createReadStream(inputFile, { highWaterMark });
+
+        let writeStream = fs.createWriteStream(outputFile, { highWaterMark });
 
         const readInterface = readLine.createInterface({
             input: readStream,
         });
-        readInterface.on('line', (line) => util.parseLine(line, debtMapping));
+
+        const transformStream = summaryTransform();
+
+        readInterface.on('line', (line) => {
+
+            const valid = util.isValidLine(line);
+            if (!valid) return;
+
+            const chunkSize = Buffer.byteLength(JSON.stringify(chunk));
+            const lineSize = Buffer.byteLength(line);
+            const [currenKey] = util.parseLine(line);
+
+            // If total size exceeds the maxChunkSize and the currentKey is not as same as previous
+            // key then push that chunk to transform stream for further processing.
+
+            // If the total size exceeds but prevKey = currentKey, continue until different key is found.
+            if ((chunkSize + lineSize) > maxChunkSize && prevKey !== currenKey) {
+                console.log('Processing chunk : ', chunkCount);
+                transformStream.write(JSON.stringify(chunk));
+                chunk = [] // reset the chunk
+                chunkCount++;
+            }
+
+            chunk.push(line);
+            prevKey = currenKey;
+        });
 
         readInterface.on('close', () => {
+
+            // There can be records which are in chunk but are not yet sent to the transform stream 
+            // because the chunksize didn't exceede the maxChunkSize. We need to send those
+            // records to transform too.
+
+            if (chunk) transformStream.write(JSON.stringify(chunk));
             if (readStream) readStream.destroy();
-            resolve(debtMapping);
+
+            resolve("complete");
         });
 
-        readInterface.on('error', () => {
+        readInterface.on('error', (err) => {
             if (readStream) readStream.destroy();
-            reject("error")
+            reject(err)
         });
+
+        pipeline(transformStream, writeStream, (err) => {
+            if (err) console.log('error', err);
+            else console.log('complete');
+        })
     });
 }
 
@@ -113,15 +105,12 @@ function readInputCSVFile(inputFile) {
  * @param {string} outputFile 
  */
 async function processMonetaryDebt(inputFile, outputFile) {
-
     try {
-        const debtMapping = await readInputCSVFile(inputFile);
-        await writeDebtSummary(debtMapping, outputFile);
+        await process(inputFile, outputFile);
     } catch (error) {
         console.log('Error occurred: ', error);
     }
 }
-
 
 async function begin() {
     try {
@@ -131,8 +120,16 @@ async function begin() {
 
         // Checking if the result is of type object and it has 2 entries.
         if (typeof (result) === 'object' && Object.entries(result).length === 2) {
+            const { input, output } = result;
 
-            await myModule.processMonetaryDebt(result['input'], result['output']);
+            console.log("Performing the sort operation in input file..")
+            const sortedInputFile = await util.sort(input, output)
+            console.log("Sort completed..")
+
+            console.log('Processing the sorted file..')
+            await processMonetaryDebt(sortedInputFile, output)
+
+            // TODO : Delete up the temporaray sorted file created.
         }
 
         console.log("Completed..")
@@ -143,16 +140,13 @@ async function begin() {
     }
 }
 
-begin();
 
 const myModule = {
-    writeDebtSummary,
-    readInputCSVFile,
-    summaryLine,
-    summaryTransformStream,
+    summaryTransform,
     processMonetaryDebt,
     begin
 }
+begin();
 
 module.exports = myModule;
 
